@@ -15,7 +15,7 @@ const ARQUIVOS = [
   './js/camera.js',
   './js/data/catalogo.js',
   './js/catalogo.js',
-  './js/lib/wikitabela.mjs',
+  './js/lib/wikitabela.js',
   './js/ui/catalogoView.js',
   './js/ui/dom.js',
   './js/ui/componentes.js',

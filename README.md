@@ -19,8 +19,9 @@ a base mantida pela comunidade — a mesma fonte usada por outros projetos de
 catalogação. O `scripts/construir-catalogo.mjs` lê as páginas
 *List of &lt;ano&gt; Hot Wheels*, extrai as tabelas (toy number, nº de coleção,
 modelo, série, posição no lote e foto) e grava JSONs estáticos; o GitHub Actions
-roda isso a cada publicação e toda segunda-feira, então o site sempre sobe com o
-catálogo atualizado. Nada disso é commitado: os arquivos nascem no deploy.
+roda isso a cada publicação e toda segunda-feira, commita o resultado em
+`data/catalogo/` e publica — ou seja, o app funciona mesmo sem rodar a CI de novo.
+Na primeira execução vieram **9.089 modelos de 23 anos**.
 
 No app isso vira:
 
@@ -61,15 +62,18 @@ O deploy é automático pelo workflow `.github/workflows/publicar.yml`:
 2. monta o catálogo a partir da wiki (`node scripts/construir-catalogo.mjs`);
 3. sobe tudo para o GitHub Pages.
 
-Se for a primeira execução e o Pages ainda estiver desligado, o próprio workflow
-tenta ligar (`configure-pages` com `enablement: true`). Caso a organização/conta
-bloqueie isso, basta ir em **Settings → Pages** e escolher *Source: GitHub Actions*
-uma única vez.
+**Um passo manual, uma vez só:** o token do Actions não tem permissão para criar o
+site do Pages, então abra **Settings → Pages** do repositório e escolha
+*Source: **GitHub Actions***. O workflow detecta isso sozinho — enquanto estiver
+desligado ele só monta o catálogo e avisa; assim que ligar, o deploy sai no push
+seguinte (ou rode o workflow à mão em Actions → *Catálogo e publicação* →
+*Run workflow*).
 
 Para rodar o app na sua máquina (opcional, só para desenvolver):
 
 ```bash
-node scripts/construir-catalogo.mjs --de=2020 --ate=2026   # baixa o catálogo
+node scripts/testar-parser.mjs                             # testa o parser
+node scripts/construir-catalogo.mjs --de=2020 --ate=2026   # atualiza o catálogo
 python3 -m http.server 8000                                # abre em localhost:8000
 ```
 

@@ -10,7 +10,7 @@
 
 import { mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { extrairModelos, semRepetidos } from '../js/lib/wikitabela.mjs';
+import { extrairModelos, semRepetidos } from '../js/lib/wikitabela.js';
 
 
 const FONTE = 'https://hotwheels.fandom.com/wiki/List_of_%s_Hot_Wheels';

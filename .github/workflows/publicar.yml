@@ -1,8 +1,7 @@
-name: Publicar no GitHub Pages
+name: Catálogo e publicação
 
-# O catálogo é montado na hora do deploy a partir da Hot Wheels Fandom Wiki,
-# então o site publicado sempre sai com os dados mais recentes — e nada de
-# dado gerado precisa ser commitado no repositório.
+# Monta o catálogo a partir da Hot Wheels Fandom Wiki, guarda o resultado no
+# repositório (para o app funcionar mesmo sem CI) e publica no GitHub Pages.
 on:
   push:
     branches: [claude/hot-wheels-catalog-app-0ck8nl, main]
@@ -16,7 +15,7 @@ on:
         default: '2005'
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -27,12 +26,14 @@ concurrency:
 jobs:
   construir:
     runs-on: ubuntu-latest
+    outputs:
+      pages_ligado: ${{ steps.checar-pages.outputs.ligado }}
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
       - name: Testar o parser da wiki
         run: node scripts/testar-parser.mjs
@@ -45,22 +46,49 @@ jobs:
 
       - name: Conferir o que foi gerado
         run: |
-          ls -lh data/catalogo | head -20
           node -e "const i=require('./data/catalogo/index.json');
-            if(!i.totalModelos) { console.error('catálogo vazio'); process.exit(1); }
-            console.log(i.totalModelos+' modelos em '+i.anos.length+' anos');"
+            if(!i.totalModelos || i.totalModelos < 500) {
+              console.error('catálogo pequeno demais: ' + i.totalModelos); process.exit(1);
+            }
+            console.log(i.totalModelos + ' modelos em ' + i.anos.length + ' anos');"
+
+      - name: Guardar o catálogo no repositório
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f data/catalogo
+          if git diff --cached --quiet; then
+            echo 'Catálogo sem mudanças.'
+          else
+            TOTAL=$(node -e "console.log(require('./data/catalogo/index.json').totalModelos)")
+            git commit -m "Atualiza o catálogo da wiki ($TOTAL modelos) [skip ci]"
+            git push origin HEAD:${{ github.ref_name }}
+          fi
+
+      - name: Ver se o GitHub Pages já está ligado
+        id: checar-pages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh api "repos/${{ github.repository }}/pages" >/dev/null 2>&1; then
+            echo 'ligado=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'ligado=false' >> "$GITHUB_OUTPUT"
+            echo '::notice::O GitHub Pages ainda não está ligado neste repositório. Vá em Settings → Pages e escolha Source: GitHub Actions; o próximo deploy sai sozinho.'
+          fi
 
       - name: Preparar o GitHub Pages
+        if: steps.checar-pages.outputs.ligado == 'true'
         uses: actions/configure-pages@v5
-        with:
-          enablement: true
 
       - uses: actions/upload-pages-artifact@v3
+        if: steps.checar-pages.outputs.ligado == 'true'
         with:
           path: .
 
   publicar:
     needs: construir
+    if: needs.construir.outputs.pages_ligado == 'true'
     runs-on: ubuntu-latest
     environment:
       name: github-pages

@@ -10,7 +10,7 @@
  * usando o mesmo parser do CI.
  */
 
-import { extrairModelos, semRepetidos } from './lib/wikitabela.mjs';
+import { extrairModelos, semRepetidos } from './lib/wikitabela.js';
 
 const BASE = 'data/catalogo';
 const API_WIKI = 'https://hotwheels.fandom.com/api.php';
