@@ -1,0 +1,70 @@
+name: Publicar no GitHub Pages
+
+# O catálogo é montado na hora do deploy a partir da Hot Wheels Fandom Wiki,
+# então o site publicado sempre sai com os dados mais recentes — e nada de
+# dado gerado precisa ser commitado no repositório.
+on:
+  push:
+    branches: [claude/hot-wheels-catalog-app-0ck8nl, main]
+  schedule:
+    - cron: '0 6 * * 1'   # toda segunda, 06:00 UTC
+  workflow_dispatch:
+    inputs:
+      ano_inicial:
+        description: 'Primeiro ano do catálogo'
+        required: false
+        default: '2005'
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  construir:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Testar o parser da wiki
+        run: node scripts/testar-parser.mjs
+
+      - name: Montar o catálogo a partir da wiki
+        run: |
+          node scripts/construir-catalogo.mjs \
+            --de=${{ github.event.inputs.ano_inicial || '2005' }} \
+            --ate=$(( $(date +%Y) + 1 ))
+
+      - name: Conferir o que foi gerado
+        run: |
+          ls -lh data/catalogo | head -20
+          node -e "const i=require('./data/catalogo/index.json');
+            if(!i.totalModelos) { console.error('catálogo vazio'); process.exit(1); }
+            console.log(i.totalModelos+' modelos em '+i.anos.length+' anos');"
+
+      - name: Preparar o GitHub Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+  publicar:
+    needs: construir
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4

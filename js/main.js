@@ -9,6 +9,7 @@ import * as detalhe from './ui/detalhe.js';
 import * as formulario from './ui/formulario.js';
 import * as lotes from './ui/lotes.js';
 import * as estatisticas from './ui/estatisticas.js';
+import * as catalogoView from './ui/catalogoView.js';
 import * as ajustes from './ui/ajustes.js';
 
 const app = document.getElementById('app');
@@ -19,7 +20,8 @@ const ROTAS = [
   { padrao: /^#\/lotes$/,            tela: lotes, aba: 'lotes' },
   { padrao: /^#\/lote\/(.+)$/,       tela: { render: lotes.renderDetalhe }, aba: 'lotes', chaves: ['chave'] },
   { padrao: /^#\/carro\/(.+)$/,      tela: detalhe, aba: 'galeria', chaves: ['id'] },
-  { padrao: /^#\/novo$/,             tela: formulario, aba: 'novo' },
+  { padrao: /^#\/novo(?:\?(.*))?$/,   tela: formulario, aba: 'novo', chaves: ['consulta'] },
+  { padrao: /^#\/catalogo$/,         tela: catalogoView, aba: 'catalogo' },
   { padrao: /^#\/editar\/(.+)$/,     tela: formulario, aba: 'galeria', chaves: ['id'] },
   { padrao: /^#\/estatisticas$/,     tela: estatisticas, aba: 'estatisticas' },
   { padrao: /^#\/ajustes$/,          tela: ajustes, aba: 'ajustes' },
@@ -33,7 +35,9 @@ function resolver(hash) {
     if (!achou) continue;
     const params = {};
     (rota.chaves || []).forEach((chave, i) => {
-      params[chave] = decodeURIComponent(achou[i + 1]);
+      const bruto = achou[i + 1];
+      if (bruto === undefined) return;
+      params[chave] = chave === 'consulta' ? bruto : decodeURIComponent(bruto);
     });
     return { rota, params };
   }

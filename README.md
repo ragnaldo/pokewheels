@@ -5,8 +5,34 @@ na galeria e, ao tocar na foto, mostra a ficha completa — ano de fabricação,
 nível de raridade, os outros carrinhos do mesmo lote e o que ainda falta para fechar
 a coleção.
 
-Funciona no celular e no computador, **offline**, e tudo fica guardado no próprio
-aparelho (IndexedDB). Não existe servidor, cadastro ou envio de dados para fora.
+**Abra em:** https://ragnaldo.github.io/pokewheels/ — dá para instalar na tela
+inicial e usar como app. Não precisa rodar nada na sua máquina.
+
+Funciona no celular e no computador, **offline**, e a sua coleção fica guardada no
+próprio aparelho (IndexedDB). Não existe cadastro nem envio dos seus dados para
+fora.
+
+## Catálogo real
+
+Os modelos vêm da [Hot Wheels Wiki (Fandom)](https://hotwheels.fandom.com/), que é
+a base mantida pela comunidade — a mesma fonte usada por outros projetos de
+catalogação. O `scripts/construir-catalogo.mjs` lê as páginas
+*List of &lt;ano&gt; Hot Wheels*, extrai as tabelas (toy number, nº de coleção,
+modelo, série, posição no lote e foto) e grava JSONs estáticos; o GitHub Actions
+roda isso a cada publicação e toda segunda-feira, então o site sempre sobe com o
+catálogo atualizado. Nada disso é commitado: os arquivos nascem no deploy.
+
+No app isso vira:
+
+- **busca no catálogo** ao cadastrar: escolheu o modelo, ele preenche nome, toy
+  number, série, número no lote, ano e ainda guarda a foto oficial;
+- **aba Catálogo**: navegue por ano → série → modelos, com marcação do que você
+  já tem e botão para adicionar o que falta;
+- **lote de verdade**: na ficha do carrinho, a lista completa da série pelo nome,
+  não só os números que faltam.
+
+Se um ano ainda não estiver gerado, o app consulta a API da wiki ao vivo, no
+navegador, usando o mesmo parser.
 
 ## O que dá para fazer
 
@@ -27,17 +53,25 @@ aparelho (IndexedDB). Não existe servidor, cadastro ou envio de dados para fora
   juntando ou substituindo a coleção.
 - **Instalável**: dá para adicionar à tela inicial e usar como app, sem internet.
 
-## Como rodar
+## Publicação
 
-O app é feito de arquivos estáticos e usa módulos ES, então precisa ser servido por
-HTTP (abrir o `index.html` direto pelo `file://` não funciona):
+O deploy é automático pelo workflow `.github/workflows/publicar.yml`:
+
+1. roda o teste do parser (`node scripts/testar-parser.mjs`);
+2. monta o catálogo a partir da wiki (`node scripts/construir-catalogo.mjs`);
+3. sobe tudo para o GitHub Pages.
+
+Se for a primeira execução e o Pages ainda estiver desligado, o próprio workflow
+tenta ligar (`configure-pages` com `enablement: true`). Caso a organização/conta
+bloqueie isso, basta ir em **Settings → Pages** e escolher *Source: GitHub Actions*
+uma única vez.
+
+Para rodar o app na sua máquina (opcional, só para desenvolver):
 
 ```bash
-python3 -m http.server 8000
-# depois abra http://localhost:8000
+node scripts/construir-catalogo.mjs --de=2020 --ate=2026   # baixa o catálogo
+python3 -m http.server 8000                                # abre em localhost:8000
 ```
-
-Qualquer servidor estático serve (`npx serve`, nginx, GitHub Pages, Netlify…).
 
 Para usar a **câmera ao vivo** e o **modo offline**, a página precisa estar em
 `https://` ou em `localhost` — exigência dos navegadores. Fora desse contexto o app
@@ -58,6 +92,10 @@ botão **Galeria**, que aciona a câmera nativa do aparelho.
 
 ```
 index.html              estrutura, barra superior e navegação inferior
+.github/workflows/      build do catálogo + deploy no GitHub Pages
+scripts/                gerador do catálogo e teste do parser
+js/lib/wikitabela.mjs   parser das tabelas da wiki (usado no CI e no navegador)
+js/catalogo.js          leitura do catálogo no app (arquivos locais + wiki ao vivo)
 manifest.webmanifest    dados de instalação do PWA
 sw.js                   service worker (cache para uso offline)
 css/styles.css          folha de estilo única, mobile-first
@@ -68,7 +106,7 @@ js/imagens.js           redimensionamento, miniaturas e conversões
 js/camera.js            câmera em tela cheia + seletor de arquivos
 js/estado.js            filtros da galeria
 js/data/catalogo.js     listas de referência (raridades, séries, rodas, países…)
-js/ui/                  telas: galeria, detalhe, formulário, lotes, números, ajustes
+js/ui/                  telas: galeria, catálogo, detalhe, formulário, lotes, números, ajustes
 ```
 
 O `store.js` é a única porta de entrada para os dados: as telas nunca falam com o
@@ -85,3 +123,10 @@ Tudo no navegador do aparelho:
 Limpar os dados do site apaga a coleção. Em **Ajustes** há o botão de backup e o
 pedido de *armazenamento permanente*, que reduz a chance de o navegador descartar
 as fotos para liberar espaço.
+
+## Créditos e marcas
+
+Os dados dos modelos vêm da Hot Wheels Wiki (Fandom), sob licença
+[CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/), com as fotos
+hospedadas pela própria wiki. *Hot Wheels* é marca registrada da Mattel; este é um
+projeto pessoal, independente, sem qualquer ligação com a empresa.

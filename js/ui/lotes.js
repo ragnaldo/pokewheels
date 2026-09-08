@@ -86,7 +86,7 @@ export function renderDetalhe(container, { chave }) {
       ${lote.faltantes.length ? `
         <h2 class="section-title">Faltam</h2>
         <div class="missing">${lote.faltantes.map((n) => `<span>${n}/${lote.total}</span>`).join('')}</div>` : ''}
-      ${lote.completo ? '<p style="margin-top:16px;color:var(--ok)">Lote completo — parabéns! 🎉</p>' : ''}
+      ${lote.completo ? '<div class="xadrez"></div><p style="color:var(--ok)">Lote completo — parabéns! 🎉</p>' : ''}
     `;
 
     container.querySelectorAll('[data-carro]').forEach((card) => {

@@ -36,6 +36,8 @@ export function render(container) {
         <p>Seus dados ficam só neste aparelho, dentro do navegador.</p>
       </div>
 
+      <a class="btn btn-block" href="#/estatisticas" style="margin-bottom:14px">📊 Números da coleção</a>
+
       <fieldset class="group">
         <legend>Backup</legend>
         <p class="field-hint">
@@ -68,8 +70,10 @@ export function render(container) {
         <button class="btn btn-danger btn-block" id="btn-apagar" type="button">Apagar toda a coleção</button>
       </fieldset>
 
-      <p class="field-hint" style="margin-top:24px;text-align:center">
-        PokeWheels — catálogo pessoal de miniaturas. Funciona offline.
+      <p class="credito">
+        PokeWheels — catálogo pessoal de miniaturas, funciona offline.<br>
+        Dados dos modelos: <a href="https://hotwheels.fandom.com/" target="_blank" rel="noopener">Hot Wheels Wiki (Fandom)</a>, CC BY-SA 3.0.<br>
+        Hot Wheels é marca registrada da Mattel. Este app é independente e não tem ligação com a empresa.
       </p>
     `;
 

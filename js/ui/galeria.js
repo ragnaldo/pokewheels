@@ -22,8 +22,10 @@ export function render(container) {
     if (!totalCarros()) {
       container.innerHTML = vazio({
         titulo: 'Sua garagem está vazia',
-        texto: 'Bata uma foto do primeiro carrinho e o catálogo começa aqui.',
-        acao: '<a class="btn btn-primary" href="#/novo">Fotografar carrinho</a>',
+        texto: 'Bata uma foto do primeiro carrinho — ou procure o modelo no catálogo real e adicione de lá.',
+        acao: '<div class="row" style="justify-content:center">'
+          + '<a class="btn btn-primary" href="#/novo">Fotografar carrinho</a>'
+          + '<a class="btn" href="#/catalogo">Ver o catálogo</a></div>',
       });
       return;
     }
@@ -31,7 +33,8 @@ export function render(container) {
     container.innerHTML = `
       <div class="page-head">
         <h1>Minha coleção</h1>
-        <p>${carros.length} de ${totalCarros()} carrinho(s)${filtrosAtivos() ? ' — filtro ativo' : ''}</p>
+        <p>${carros.length} de ${totalCarros()} carrinho(s)${filtrosAtivos() ? ' — filtro ativo' : ''}
+           · <a href="#/estatisticas" style="color:var(--azul-hw)">ver números</a></p>
       </div>
 
       <div class="chips" role="group" aria-label="Filtros">

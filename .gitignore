@@ -1,0 +1,3 @@
+# O catálogo é gerado no deploy (GitHub Actions) e no uso local pelo script.
+data/catalogo/
+node_modules/

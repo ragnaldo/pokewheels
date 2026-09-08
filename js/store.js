@@ -33,6 +33,7 @@ export function carroVazio() {
     anoModelo: '',
     anoFabricacao: '',
     toyNumber: '',
+    colNumero: '',
     cor: '',
     tipoRoda: '',
     escala: '1:64',
@@ -54,6 +55,9 @@ export function carroVazio() {
     favorito: false,
     fotoCapa: '',
     fotos: [],
+    // preenchido quando o carrinho vem do catálogo real da wiki
+    fotoOficial: '',
+    wikiUrl: '',
   };
 }
 
@@ -81,7 +85,7 @@ export function totalCarros() {
 
 function textoDeBusca(carro) {
   return [
-    carro.nome, carro.fabricante, carro.serie, carro.cor, carro.toyNumber,
+    carro.nome, carro.fabricante, carro.serie, carro.cor, carro.toyNumber, carro.colNumero,
     carro.tipoRoda, carro.local, carro.notas, (carro.tags || []).join(' '),
     carro.anoFabricacao, carro.anoModelo,
   ].filter(Boolean).join(' ').toLowerCase();

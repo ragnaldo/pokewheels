@@ -1,6 +1,6 @@
 /* Service worker: deixa o app abrir offline. Os dados ficam no IndexedDB. */
 
-const CACHE = 'pokewheels-v1';
+const CACHE = 'pokewheels-v2';
 
 const ARQUIVOS = [
   './',
@@ -14,6 +14,9 @@ const ARQUIVOS = [
   './js/imagens.js',
   './js/camera.js',
   './js/data/catalogo.js',
+  './js/catalogo.js',
+  './js/lib/wikitabela.mjs',
+  './js/ui/catalogoView.js',
   './js/ui/dom.js',
   './js/ui/componentes.js',
   './js/ui/galeria.js',
@@ -43,6 +46,8 @@ self.addEventListener('activate', (evento) => {
   );
 });
 
+// Os arquivos de data/catalogo/ não entram no pré-cache (podem ainda não existir);
+// o fetch abaixo guarda cada um assim que é usado pela primeira vez.
 self.addEventListener('fetch', (evento) => {
   const req = evento.request;
   if (req.method !== 'GET' || new URL(req.url).origin !== location.origin) return;

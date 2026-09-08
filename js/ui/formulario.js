@@ -1,6 +1,6 @@
 /** Cadastro e edição de carrinho. */
 
-import { esc, aviso, opcoes, confirmar } from './dom.js';
+import { esc, aviso, opcoes, confirmar, adiar } from './dom.js';
 import { urlMiniatura } from './componentes.js';
 import {
   carroVazio, obterCarro, salvarCarro, adicionarFoto, obterFoto,
@@ -10,13 +10,35 @@ import {
   RARIDADES, CONDICOES, EMBALAGENS, ESCALAS, TIPOS_RODA, PAISES, MOEDAS, SERIES_SUGERIDAS,
 } from '../data/catalogo.js';
 import { capturar, escolherArquivos } from '../camera.js';
+import { buscar as buscarNoCatalogo, indice } from '../catalogo.js';
 
 const SVG_X = '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>';
 
-export function render(container, { id } = {}) {
+/** Dados vindos do catálogo por link (#/novo?nome=...&toy=...). */
+function doLink(consulta) {
+  if (!consulta) return {};
+  const p = new URLSearchParams(consulta);
+  const campos = {
+    nome: p.get('nome') || '',
+    toyNumber: p.get('toy') || '',
+    colNumero: p.get('col') || '',
+    serie: p.get('serie') || '',
+    serieAno: p.get('serieAno') || '',
+    serieNumero: p.get('serieNumero') || '',
+    serieTotal: p.get('serieTotal') || '',
+    fotoOficial: p.get('foto') || '',
+    anoFabricacao: p.get('serieAno') || '',
+  };
+  if (campos.serieAno) {
+    campos.wikiUrl = `https://hotwheels.fandom.com/wiki/List_of_${campos.serieAno}_Hot_Wheels`;
+  }
+  return Object.fromEntries(Object.entries(campos).filter(([, v]) => v !== ''));
+}
+
+export function render(container, { id, consulta } = {}) {
   const original = id ? obterCarro(id) : null;
   const editando = Boolean(original);
-  const rascunho = { ...carroVazio(), ...(original || {}) };
+  const rascunho = { ...carroVazio(), ...(original || {}), ...(editando ? {} : doLink(consulta)) };
   let fotos = [...(rascunho.fotos || [])];
   let salvo = false;
 
@@ -32,6 +54,27 @@ export function render(container, { id } = {}) {
       </div>
 
       <form class="form" id="form-carro" novalidate>
+        <fieldset class="group destaque">
+          <legend>Catálogo Hot Wheels</legend>
+          <div class="field">
+            <label for="f-catalogo">Buscar o modelo no catálogo real</label>
+            <input id="f-catalogo" type="search" autocomplete="off"
+                   placeholder="Ex.: Skyline, Camaro, HKG38">
+            <span class="field-hint">Preenche modelo, toy number, série, número do lote e ano automaticamente.</span>
+          </div>
+          <div id="cat-resultados" class="cat-resultados"></div>
+          ${rascunho.fotoOficial ? `
+            <div class="cat-escolhido">
+              <img src="${esc(rascunho.fotoOficial)}" alt="Foto do catálogo" referrerpolicy="no-referrer" onerror="this.closest('.cat-foto, .cat-escolhido, .hero-img, .cat-sugestao')?.classList.add('sem-foto'); this.remove()">
+              <div>
+                <b>Do catálogo</b>
+                <span class="field-hint">${esc(rascunho.serie || '')} ${esc(rascunho.serieNumero ? `${rascunho.serieNumero}/${rascunho.serieTotal}` : '')}</span>
+                ${rascunho.wikiUrl ? `<a class="field-hint" href="${esc(rascunho.wikiUrl)}" target="_blank" rel="noopener">ver na wiki ↗</a>` : ''}
+              </div>
+              <button type="button" class="text-btn" data-acao="limpar-catalogo">remover</button>
+            </div>` : ''}
+        </fieldset>
+
         <fieldset class="group">
           <legend>Fotos</legend>
           <div class="photo-tray" id="bandeja">
@@ -84,9 +127,15 @@ export function render(container, { id } = {}) {
                      min="1900" max="${anoAtual + 2}" value="${esc(rascunho.anoModelo)}" placeholder="1967">
             </div>
           </div>
-          <div class="field">
-            <label for="f-toyNumber">Toy number / código</label>
-            <input id="f-toyNumber" name="toyNumber" value="${esc(rascunho.toyNumber)}" placeholder="Ex.: HKG38">
+          <div class="grid-2">
+            <div class="field">
+              <label for="f-toyNumber">Toy number / código</label>
+              <input id="f-toyNumber" name="toyNumber" value="${esc(rascunho.toyNumber)}" placeholder="Ex.: HKG38">
+            </div>
+            <div class="field">
+              <label for="f-colNumero">Nº de coleção</label>
+              <input id="f-colNumero" name="colNumero" value="${esc(rascunho.colNumero)}" placeholder="Ex.: 088">
+            </div>
           </div>
         </fieldset>
 
@@ -216,6 +265,65 @@ export function render(container, { id } = {}) {
     selRaridade.addEventListener('change', atualizarDica);
     atualizarDica();
 
+    const campoCatalogo = form.querySelector('#f-catalogo');
+    const caixaResultados = form.querySelector('#cat-resultados');
+
+    const aplicarDoCatalogo = (modelo) => {
+      guardarCampos();
+      Object.assign(rascunho, {
+        nome: modelo.modelo || rascunho.nome,
+        toyNumber: modelo.toy || rascunho.toyNumber,
+        serie: modelo.serie || rascunho.serie,
+        serieAno: modelo.ano ? String(modelo.ano) : rascunho.serieAno,
+        serieNumero: modelo.serieNumero ? String(modelo.serieNumero) : rascunho.serieNumero,
+        serieTotal: modelo.serieTotal ? String(modelo.serieTotal) : rascunho.serieTotal,
+        anoFabricacao: modelo.ano ? String(modelo.ano) : rascunho.anoFabricacao,
+        fotoOficial: modelo.foto || '',
+        wikiUrl: modelo.wiki || '',
+      });
+      aviso(`"${modelo.modelo}" preenchido pelo catálogo.`);
+      desenhar();
+    };
+
+    campoCatalogo.addEventListener('input', adiar(async () => {
+      const termo = campoCatalogo.value.trim();
+      if (termo.length < 2) { caixaResultados.innerHTML = ''; return; }
+
+      caixaResultados.innerHTML = '<p class="field-hint">Procurando no catálogo…</p>';
+      const achados = await buscarNoCatalogo(termo, { limite: 8 });
+
+      if (!achados.length) {
+        const meta = await indice();
+        caixaResultados.innerHTML = `<p class="field-hint">Nada encontrado${
+          meta.indisponivel ? ' — o catálogo ainda não foi publicado neste endereço' : ''}. Dá para preencher na mão.</p>`;
+        return;
+      }
+
+      caixaResultados.innerHTML = achados.map((m, i) => {
+        const numero = m.serieNumero ? `${m.serieNumero}${m.serieTotal ? `/${m.serieTotal}` : ''}` : '';
+        return `
+          <button type="button" class="cat-sugestao" data-indice="${i}">
+            ${m.foto ? `<img src="${esc(m.foto)}" alt="" referrerpolicy="no-referrer" onerror="this.closest('.cat-foto, .cat-escolhido, .hero-img, .cat-sugestao')?.classList.add('sem-foto'); this.remove()">` : '<span class="ph">🏁</span>'}
+            <span class="cat-sug-info">
+              <b>${esc(m.modelo)}</b>
+              <span>${esc([m.serie, numero, m.ano].filter(Boolean).join(' · '))}</span>
+            </span>
+            ${m.toy ? `<code>${esc(m.toy)}</code>` : ''}
+          </button>`;
+      }).join('');
+
+      caixaResultados.querySelectorAll('[data-indice]').forEach((btn) => {
+        btn.addEventListener('click', () => aplicarDoCatalogo(achados[Number(btn.dataset.indice)]));
+      });
+    }, 320));
+
+    form.querySelector('[data-acao="limpar-catalogo"]')?.addEventListener('click', () => {
+      guardarCampos();
+      rascunho.fotoOficial = '';
+      rascunho.wikiUrl = '';
+      desenhar();
+    });
+
     const anexar = async (arquivos) => {
       if (!arquivos.length) return;
       for (const arquivo of arquivos) {
@@ -267,6 +375,8 @@ export function render(container, { id } = {}) {
 
       const carro = await salvarCarro({
         ...rascunho,
+        fotoOficial: rascunho.fotoOficial || '',
+        wikiUrl: rascunho.wikiUrl || '',
         id: id || '',
         tags: rascunho.tags,
         fotos,
