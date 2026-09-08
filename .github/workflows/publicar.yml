@@ -13,6 +13,10 @@ on:
         description: 'Primeiro ano do catálogo'
         required: false
         default: '2005'
+      amostra:
+        description: 'Ano para inspecionar o HTML cru da wiki (diagnóstico)'
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -37,6 +41,10 @@ jobs:
 
       - name: Testar o parser da wiki
         run: node scripts/testar-parser.mjs
+
+      - name: Inspecionar o HTML da wiki (diagnóstico)
+        if: github.event.inputs.amostra != ''
+        run: node scripts/amostra-wiki.mjs --ano=${{ github.event.inputs.amostra }} --linhas=8
 
       - name: Montar o catálogo a partir da wiki
         run: |
