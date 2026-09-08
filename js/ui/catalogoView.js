@@ -106,12 +106,20 @@ export function render(container) {
         .sort((a, b) => (Number(a.serieNumero) || 99) - (Number(b.serieNumero) || 99));
       const tenho = doLote.filter((m) => tenhoEsse(mapa, m)).length;
 
+      // A wiki lista cada variação de cor como um registro à parte, então o
+      // número de posições do lote (1/10, 2/10…) não é o número de registros.
+      const posicoes = new Set(doLote.map((m) => m.serieNumero).filter(Boolean)).size;
+      const totalDeclarado = Math.max(0, ...doLote.map((m) => Number(m.serieTotal) || 0));
+      const temVariacoes = doLote.length > posicoes;
+
       corpo = `
         <div class="row" style="margin-bottom:12px">
           <button class="chip" data-voltar-serie>← ${esc(String(anoAtivo))}</button>
           <span class="tag">${tenho} de ${doLote.length}</span>
+          ${totalDeclarado ? `<span class="tag">${posicoes} de ${totalDeclarado} posições</span>` : ''}
         </div>
         <h2 class="section-title">${esc(serieAtiva)}</h2>
+        ${temVariacoes ? '<p class="field-hint" style="margin:-4px 0 10px">As variações de cor entram como registros separados, do jeito que a wiki lista.</p>' : ''}
         <div class="progress" style="margin-bottom:14px"><i style="width:${doLote.length ? (tenho / doLote.length) * 100 : 0}%"></i></div>
         <div class="cat-lista">${doLote.map((m) => cartaoModelo(m, tenhoEsse(mapa, m))).join('')}</div>`;
     } else if (anoAtivo) {

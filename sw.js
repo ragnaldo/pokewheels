@@ -1,6 +1,6 @@
 /* Service worker: deixa o app abrir offline. Os dados ficam no IndexedDB. */
 
-const CACHE = 'pokewheels-v2';
+const CACHE = 'pokewheels-v3';
 
 const ARQUIVOS = [
   './',
@@ -50,7 +50,26 @@ self.addEventListener('activate', (evento) => {
 // o fetch abaixo guarda cada um assim que é usado pela primeira vez.
 self.addEventListener('fetch', (evento) => {
   const req = evento.request;
-  if (req.method !== 'GET' || new URL(req.url).origin !== location.origin) return;
+  const url = new URL(req.url);
+  if (req.method !== 'GET' || url.origin !== location.origin) return;
+
+  // Catálogo: arquivos grandes que mudam pouco. Serve do cache na hora e
+  // atualiza por baixo, para não baixar 1,6 MB a cada abertura no celular.
+  if (url.pathname.includes('/data/catalogo/')) {
+    evento.respondWith(
+      caches.open(CACHE).then(async (cache) => {
+        const guardada = await cache.match(req);
+        const rede = fetch(req)
+          .then((resposta) => {
+            if (resposta.ok) cache.put(req, resposta.clone());
+            return resposta;
+          })
+          .catch(() => guardada);
+        return guardada || rede;
+      }),
+    );
+    return;
+  }
 
   // rede primeiro (para pegar atualizações), cache como reserva
   evento.respondWith(

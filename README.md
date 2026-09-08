@@ -33,7 +33,13 @@ No app isso vira:
   não só os números que faltam.
 
 Se um ano ainda não estiver gerado, o app consulta a API da wiki ao vivo, no
-navegador, usando o mesmo parser.
+navegador, usando o mesmo parser. O índice de busca (1,6 MB, ~290 KB comprimido)
+é baixado uma vez e fica no cache do service worker.
+
+Duas ressalvas honestas sobre a fonte: a wiki é mantida por voluntários, então
+existem linhas com foto trocada ou campo em branco (o parser copia o que está
+lá, sem inventar), e cada **variação de cor** vira um registro separado — por
+isso uma série "de 10" pode listar 22 itens.
 
 ## O que dá para fazer
 

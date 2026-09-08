@@ -28,7 +28,8 @@ const cache = {
 };
 
 async function pegarJSON(caminho) {
-  const resposta = await fetch(caminho, { cache: 'no-cache' });
+  // sem 'no-cache': quem decide a validade é o service worker
+  const resposta = await fetch(caminho);
   if (!resposta.ok) throw new Error(`HTTP ${resposta.status} em ${caminho}`);
   return resposta.json();
 }

@@ -38,6 +38,8 @@ async function completarComCatalogo(container, carro) {
   // avisamos em vez de dar o lote como fechado.
   const declarado = Number(carro.serieTotal) || 0;
   const incompleto = declarado > doLote.length;
+  const posicoes = new Set(doLote.map((m) => m.serieNumero).filter(Boolean)).size;
+  const comVariacoes = doLote.length > posicoes;
 
   alvo.innerHTML = `
     <h3 class="section-title">O lote no catálogo — ${tenho} de ${doLote.length}</h3>
@@ -45,6 +47,7 @@ async function completarComCatalogo(container, carro) {
     <div class="cat-lista">${doLote.map((m) => cartaoModelo(m, tenhoEsse(meus, m))).join('')}</div>
     <p class="field-hint" style="margin-top:10px">
       Lista real da série, vinda do catálogo.
+      ${comVariacoes ? 'As variações de cor aparecem como registros separados.' : ''}
       ${incompleto
         ? `O card informa ${declarado} carrinhos, mas o catálogo só tem ${doLote.length} dessa série — pode faltar registro na wiki.`
         : ''}
