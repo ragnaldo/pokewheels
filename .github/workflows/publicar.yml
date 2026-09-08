@@ -61,17 +61,31 @@ jobs:
             console.log(i.totalModelos + ' modelos em ' + i.anos.length + ' anos');"
 
       - name: Guardar o catálogo no repositório
+        env:
+          BRANCH: ${{ github.ref_name }}
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -f data/catalogo
           if git diff --cached --quiet; then
             echo 'Catálogo sem mudanças.'
-          else
-            TOTAL=$(node -e "console.log(require('./data/catalogo/index.json').totalModelos)")
-            git commit -m "Atualiza o catálogo da wiki ($TOTAL modelos) [skip ci]"
-            git push origin HEAD:${{ github.ref_name }}
+            exit 0
           fi
+          TOTAL=$(node -e "console.log(require('./data/catalogo/index.json').totalModelos)")
+          # o marcador impede que este commit dispare o workflow de novo
+          git commit -m "Atualiza o catálogo da wiki ($TOTAL modelos) [skip ci]"
+          # duas execuções podem terminar juntas: rebase e tenta de novo,
+          # sempre mantendo o catálogo recém-gerado em caso de conflito
+          for tentativa in 1 2 3; do
+            if git push origin "HEAD:$BRANCH"; then
+              echo "Catálogo publicado na tentativa $tentativa."
+              exit 0
+            fi
+            git fetch origin "$BRANCH"
+            git rebase -X theirs "origin/$BRANCH" || { git rebase --abort; exit 1; }
+          done
+          echo 'Não consegui publicar o catálogo depois de 3 tentativas.'
+          exit 1
 
       - name: Ver se o GitHub Pages já está ligado
         id: checar-pages
